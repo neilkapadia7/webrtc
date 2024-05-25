@@ -4,8 +4,9 @@ const wss = new WebSocketServer({ port: 8080 });
 
 let senderSocket: null | WebSocket = null;
 let receiverSocket: null | WebSocket = null;
+let receiverSockets: Array<WebSocket> = [];
 
-wss.on('connection', function connection(ws) {
+wss.on('connection', function connection(ws) {    
   ws.on('error', console.error);
 
   ws.on('message', function message(data: any) {
@@ -15,27 +16,49 @@ wss.on('connection', function connection(ws) {
       senderSocket = ws;
     } else if (message.type === 'receiver') {
       console.log("receiver added");
-      receiverSocket = ws;
+    //   receiverSocket = ws;
+      
+      //   
+      receiverSockets.push(ws);
     } else if (message.type === 'createOffer') {
       if (ws !== senderSocket) {
         return;
       }
       console.log("sending offer");
-      receiverSocket?.send(JSON.stringify({ type: 'createOffer', sdp: message.sdp }));
+    //   receiverSocket?.send(JSON.stringify({ type: 'createOffer', sdp: message.sdp }));
+      receiverSockets.forEach(socket => {
+        socket?.send(JSON.stringify({ type: 'createOffer', sdp: message.sdp }));
+      });
     } else if (message.type === 'createAnswer') {
-        if (ws !== receiverSocket) {
+        // if (ws !== receiverSocket) {
+        //   return;
+        // }
+
+        if (!receiverSockets?.includes(ws)) {
           return;
         }
         console.log("sending answer");
+
         senderSocket?.send(JSON.stringify({ type: 'createAnswer', sdp: message.sdp }));
     } else if (message.type === 'iceCandidate') {
       console.log("sending ice candidate")
       if (ws === senderSocket) {
-        receiverSocket?.send(JSON.stringify({ type: 'iceCandidate', candidate: message.candidate }));
-      } else if (ws === receiverSocket) {
+        receiverSockets.forEach(socket => {
+            socket?.send(JSON.stringify({ type: 'iceCandidate', candidate: message.candidate }));
+        });
+        // receiverSocket.send(JSON.stringify({ type: 'iceCandidate', candidate: message.candidate }));
+    //   } else if (ws === receiverSocket) {
+    //     senderSocket?.send(JSON.stringify({ type: 'iceCandidate', candidate: message.candidate }));
+    //   }
+      } else if (receiverSockets.includes(ws)) {
         senderSocket?.send(JSON.stringify({ type: 'iceCandidate', candidate: message.candidate }));
       }
     }
+
+      console.log("HERE -> ", {receiverSockets: receiverSockets.length, senderSocket: senderSocket ? 1 : 0})
+
   });
+
+
 
 });

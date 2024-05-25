@@ -24,9 +24,15 @@ export const Sender = () => {
         socket.onmessage = async (event) => {
             const message = JSON.parse(event.data);
             if (message.type === 'createAnswer') {
+                console.log("REMOTE DESCRIPTION ADDED");
                 await pc.setRemoteDescription(message.sdp);
             } else if (message.type === 'iceCandidate') {
+                console.log("SENDER ICE CANDDATES ADDED -> ", message.candidate)
                 pc.addIceCandidate(message.candidate);
+            } else if (message.type === 'newCandidateTrigger') {
+                // console.log("NEW CANDIDATE ADDED -> ", message.candidate)
+                // pc.addIceCandidate(message.candidate);
+                initiateConn();
             }
         }
 
@@ -62,7 +68,7 @@ export const Sender = () => {
             // this is wrong, should propogate via a component
             document.body.appendChild(video);
             stream.getTracks().forEach((track) => {
-                console.error("track added");
+                console.log("track added");
                 console.log(track);
                 console.log(pc);
                 pc?.addTrack(track);

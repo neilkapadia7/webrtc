@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react"
 
 
 export const Receiver = () => {
-    const [recieverSocket, setSocket] = useState<WebSocket | null>(null);
+    // const [recieverSocket, setSocket] = useState<WebSocket | null>(null);
     const videoRef = useRef<HTMLVideoElement>(null);
 
     useEffect(() => {
@@ -12,27 +12,11 @@ export const Receiver = () => {
                 type: 'receiver'
             }));
         }
-        setSocket(socket);
+        // setSocket(socket);
         startReceiving(socket);
     }, []);
 
 
-    // recieverSocket.onmessage = (event) => {
-    //     const message = JSON.parse(event.data);
-    //     if (message.type === 'createOffer') {
-    //         pc.setRemoteDescription(message.sdp).then(() => {
-    //             pc.createAnswer().then((answer) => {
-    //                 pc.setLocalDescription(answer);
-    //                 socket.send(JSON.stringify({
-    //                     type: 'createAnswer',
-    //                     sdp: answer
-    //                 }));
-    //             });
-    //         });
-    //     } else if (message.type === 'iceCandidate') {
-    //         pc.addIceCandidate(message.candidate);
-    //     }
-    // }
 
     function startReceiving(socket: WebSocket) {
         const video = document.createElement('video');
@@ -43,17 +27,31 @@ export const Receiver = () => {
             console.log("TRACK ADDED -> ", event);
             if(videoRef.current) {
                 videoRef.current.srcObject = new MediaStream([event.track]);
+                videoRef.current.muted = true;
+                videoRef.current.play()
             }
-            video.srcObject = new MediaStream([event.track]);
-            video.muted = true;
-            video.play();
+        //     video.srcObject = new MediaStream([event.track]);
+        //     video.muted = true;
+        //     video.play();
         }
+
+        // pc.onicecandidate = (event) => {
+        //     if (event.candidate) {
+        //         socket?.send(JSON.stringify({
+        //             type: 'iceCandidate',
+        //             candidate: event.candidate
+        //         }));
+        //     }
+        // }
 
         socket.onmessage = (event) => {
             const message = JSON.parse(event.data);
             if (message.type === 'createOffer') {
+                console.log("OFFER ADDED!")
                 pc.setRemoteDescription(message.sdp).then(() => {
+                    console.log("OFFER ADDED! 1")
                     pc.createAnswer().then((answer) => {
+                        console.log("OFFER ADDED! 2 ! ANSWER CREATED")
                         pc.setLocalDescription(answer);
                         socket.send(JSON.stringify({
                             type: 'createAnswer',
@@ -62,6 +60,7 @@ export const Receiver = () => {
                     });
                 });
             } else if (message.type === 'iceCandidate') {
+                console.log("REMOTE ICE CANDIDATE ADDED", message.candidate)
                 pc.addIceCandidate(message.candidate);
             }
         }
